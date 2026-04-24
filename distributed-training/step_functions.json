@@ -1,0 +1,149 @@
+{
+  "Comment": "Clinical NLP Distributed Pipeline — AWS Step Functions Orchestration",
+  "StartAt": "CreateEMRCluster",
+  "States": {
+    "CreateEMRCluster": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::elasticmapreduce:createCluster.sync",
+      "Parameters": {
+        "Name": "ClinicalNLP-Pipeline",
+        "ReleaseLabel": "emr-7.0.0",
+        "LogUri.$": "States.Format('s3://{}/logs/emr/', $.bucket)",
+        "Instances": {
+          "MasterInstanceType.$": "$.instance_type",
+          "SlaveInstanceType.$": "$.instance_type",
+          "InstanceCount.$": "$.instance_count",
+          "KeepJobFlowAliveWhenNoSteps": true
+        },
+        "Applications": [
+          { "Name": "Spark" }
+        ],
+        "BootstrapActions": [
+          {
+            "Name": "InstallDeps",
+            "ScriptBootstrapAction": {
+              "Path.$": "States.Format('s3://{}/scripts/bootstrap.sh', $.bucket)"
+            }
+          }
+        ],
+        "Configurations": [
+          {
+            "Classification": "spark-defaults",
+            "Properties": {
+              "spark.sql.adaptive.enabled": "true",
+              "spark.sql.adaptive.coalescePartitions.enabled": "true",
+              "spark.sql.shuffle.partitions": "200"
+            }
+          }
+        ],
+        "ServiceRole": "EMR_DefaultRole",
+        "JobFlowRole": "EMR_EC2_DefaultRole",
+        "AutoTerminationPolicy": {
+          "IdleTimeout": 300
+        },
+        "Tags": [
+          { "Key": "Project", "Value": "ClinicalNLP-Portfolio" },
+          { "Key": "ManagedBy", "Value": "StepFunctions" }
+        ]
+      },
+      "ResultPath": "$.cluster",
+      "Next": "SubmitSparkJob"
+    },
+
+    "SubmitSparkJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::elasticmapreduce:addStep.sync",
+      "Parameters": {
+        "ClusterId.$": "$.cluster.ClusterId",
+        "Step": {
+          "Name": "RunNLPPipeline",
+          "ActionOnFailure": "CONTINUE",
+          "HadoopJarStep": {
+            "Jar": "command-runner.jar",
+            "Args": [
+              "spark-submit",
+              "--deploy-mode", "cluster",
+              "--conf", "spark.sql.adaptive.enabled=true",
+              "--conf", "spark.dynamicAllocation.enabled=true",
+              {
+                "Fn::Sub": "s3://${bucket}/scripts/spark_pipeline.py"
+              },
+              "--input", "s3://YOUR-BUCKET/data/amazon_reviews/",
+              "--output.$": "States.Format('s3://{}/output/clinical-nlp-features/', $.bucket)"
+            ]
+          }
+        }
+      },
+      "ResultPath": "$.step",
+      "Next": "CheckStepResult"
+    },
+
+    "CheckStepResult": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.step.Step.Status.State",
+          "StringEquals": "COMPLETED",
+          "Next": "ValidateOutput"
+        }
+      ],
+      "Default": "PipelineFailed"
+    },
+
+    "ValidateOutput": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::elasticmapreduce:addStep.sync",
+      "Parameters": {
+        "ClusterId.$": "$.cluster.ClusterId",
+        "Step": {
+          "Name": "ValidateOutput",
+          "ActionOnFailure": "CONTINUE",
+          "HadoopJarStep": {
+            "Jar": "command-runner.jar",
+            "Args": [
+              "spark-submit",
+              "--deploy-mode", "cluster",
+              "--conf", "spark.sql.adaptive.enabled=true",
+              {
+                "Fn::Sub": "s3://${bucket}/scripts/spark_pipeline.py"
+              },
+              "--input.$": "States.Format('s3://{}/output/clinical-nlp-features/tfidf_features/', $.bucket)",
+              "--output.$": "States.Format('s3://{}/output/validation/', $.bucket)",
+              "--sample", "0.01"
+            ]
+          }
+        }
+      },
+      "ResultPath": "$.validation",
+      "Next": "TerminateCluster"
+    },
+
+    "TerminateCluster": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::elasticmapreduce:terminateCluster.sync",
+      "Parameters": {
+        "ClusterId.$": "$.cluster.ClusterId"
+      },
+      "Next": "PipelineSucceeded"
+    },
+
+    "PipelineSucceeded": {
+      "Type": "Succeed"
+    },
+
+    "PipelineFailed": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::elasticmapreduce:terminateCluster.sync",
+      "Parameters": {
+        "ClusterId.$": "$.cluster.ClusterId"
+      },
+      "Next": "FailState"
+    },
+
+    "FailState": {
+      "Type": "Fail",
+      "Error": "PipelineExecutionFailed",
+      "Cause": "Spark job failed — check EMR logs"
+    }
+  }
+}

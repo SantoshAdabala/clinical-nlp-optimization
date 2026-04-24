@@ -1,0 +1,109 @@
+{
+  "dashboard": {
+    "title": "Clinical NER Inference — SLA Dashboard",
+    "tags": ["clinical-nlp", "ner", "inference"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "panels": [
+      {
+        "title": "Request Rate (req/s)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(ner_inference_requests_total[1m])",
+            "legendFormat": "{{model_version}} - {{status}}"
+          }
+        ]
+      },
+      {
+        "title": "Latency P50 / P95 / P99",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(ner_inference_latency_seconds_bucket[5m]))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(ner_inference_latency_seconds_bucket[5m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(ner_inference_latency_seconds_bucket[5m]))",
+            "legendFormat": "P99"
+          }
+        ]
+      },
+      {
+        "title": "SLA Compliance (%)",
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+        "targets": [
+          {
+            "expr": "ner_requests_within_sla_total / (ner_requests_within_sla_total + ner_sla_violations_total) * 100",
+            "legendFormat": "SLA %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 99}
+              ]
+            },
+            "min": 0,
+            "max": 100,
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "title": "Entities Detected by Type",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(ner_entities_detected_total[5m])",
+            "legendFormat": "{{entity_type}}"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(ner_inference_errors_total[5m])",
+            "legendFormat": "{{error_type}}"
+          }
+        ]
+      },
+      {
+        "title": "Input Length Distribution",
+        "type": "histogram",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(ner_input_length_tokens_bucket[5m])",
+            "legendFormat": "{{le}}"
+          }
+        ]
+      },
+      {
+        "title": "Prediction Confidence",
+        "type": "histogram",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(ner_prediction_confidence_bucket[5m])",
+            "legendFormat": "{{le}}"
+          }
+        ]
+      }
+    ]
+  }
+}

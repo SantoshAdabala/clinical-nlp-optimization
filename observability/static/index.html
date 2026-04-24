@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical NER Annotation Tool</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .header .badge {
+            background: #065f46;
+            color: #6ee7b7;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e2e8f0;
+            padding: 16px;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover { background: #2563eb; }
+        .btn:disabled { background: #475569; cursor: not-allowed; }
+
+        .btn-sample {
+            background: transparent;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-top: 8px;
+        }
+
+        .btn-sample:hover { border-color: #3b82f6; color: #3b82f6; }
+
+        .annotated-text {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            line-height: 1.8;
+            font-size: 14px;
+            min-height: 200px;
+        }
+
+        .entity {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: help;
+        }
+
+        .entity-Chemical {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            color: #93c5fd;
+        }
+
+        .entity-Disease {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+        }
+
+        .entity-list {
+            margin-top: 16px;
+        }
+
+        .entity-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #0f172a;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .entity-label {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .label-Chemical { background: #1e3a5f; color: #93c5fd; }
+        .label-Disease { background: #5f1e1e; color: #fca5a5; }
+
+        .confidence {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .metrics-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            grid-column: 1 / -1;
+        }
+
+        .metric-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #475569;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .status { font-size: 12px; color: #64748b; margin-top: 8px; }
+        .status.error { color: #ef4444; }
+
+        .legend {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        .samples-row {
+            margin-top: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+            .metrics-bar { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Clinical NER Annotation Tool</h1>
+        <span class="badge" id="serverStatus">Checking...</span>
+    </div>
+
+    <div class="container">
+        <!-- Metrics bar -->
+        <div class="metrics-bar">
+            <div class="metric-card">
+                <div class="metric-value" id="metricRequests">0</div>
+                <div class="metric-label">Requests</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="metricEntities">0</div>
+                <div class="metric-label">Entities Found</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="metricLatency">-</div>
+                <div class="metric-label">Avg Latency (ms)</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="metricSLA">-</div>
+                <div class="metric-label">SLA Compliance</div>
+            </div>
+        </div>
+
+        <!-- Input panel -->
+        <div class="panel">
+            <div class="panel-title">Input — Clinical Text</div>
+            <textarea id="inputText" placeholder="Paste a clinical note here..."></textarea>
+            <div>
+                <button class="btn" id="analyzeBtn" onclick="analyze()">Detect Entities</button>
+            </div>
+            <div class="samples-row">
+                <button class="btn-sample" onclick="loadSample(0)">Sample: Diabetes</button>
+                <button class="btn-sample" onclick="loadSample(1)">Sample: COPD</button>
+                <button class="btn-sample" onclick="loadSample(2)">Sample: Cardiology</button>
+                <button class="btn-sample" onclick="loadSample(3)">Sample: Psychiatry</button>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+
+        <!-- Output panel -->
+        <div class="panel">
+            <div class="panel-title">Output — Annotated Text</div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: rgba(59,130,246,0.4)"></div>
+                    Chemical / Drug
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: rgba(239,68,68,0.4)"></div>
+                    Disease / Condition
+                </div>
+            </div>
+            <div class="annotated-text" id="annotatedText">
+                Results will appear here after analysis...
+            </div>
+            <div class="entity-list" id="entityList"></div>
+        </div>
+    </div>
+</body>
+</html>
+
+<script>
+const API = 'http://localhost:8000';
+let totalRequests = 0;
+let totalEntities = 0;
+let latencies = [];
+
+const SAMPLES = [
+    "Patient is a 58-year-old male with type 2 diabetes mellitus and hypertension. Currently on metformin 1000mg BID, lisinopril 20mg daily, and amlodipine 5mg daily. Recent HbA1c 7.8%. Discussed adding empagliflozin 10mg daily for combined glycemic and renal benefit. Continue aspirin 81mg daily for cardiovascular prophylaxis.",
+
+    "Discharge summary: 72-year-old female admitted for acute exacerbation of COPD with pneumonia. Started on ceftriaxone 1g IV and azithromycin 500mg IV. Transitioned to oral levofloxacin 750mg daily. Prednisone taper initiated. Home medications resumed: tiotropium 18mcg inhaled daily, fluticasone-salmeterol 250/50 BID, montelukast 10mg daily.",
+
+    "Cardiology consultation: New-onset atrial fibrillation. CHA2DS2-VASc score 4. Started apixaban 5mg BID for stroke prophylaxis. Metoprolol succinate 50mg daily for rate control. Continue atorvastatin 40mg daily. Avoid NSAIDs due to anticoagulation.",
+
+    "Psychiatry follow-up: Major depressive disorder, recurrent. PHQ-9 score improved from 18 to 9 on sertraline 100mg daily. Adding bupropion 150mg XL for residual fatigue and concentration difficulties. Discussed cognitive behavioral therapy. Trazodone 50mg at bedtime for insomnia. Monitor for serotonin syndrome symptoms."
+];
+
+async function checkHealth() {
+    try {
+        const resp = await fetch(`${API}/health`);
+        const data = await resp.json();
+        const badge = document.getElementById('serverStatus');
+        if (data.status === 'healthy') {
+            badge.textContent = `Model: ${data.model_version}`;
+            badge.style.background = '#065f46';
+        } else {
+            badge.textContent = 'Not Ready';
+            badge.style.background = '#7f1d1d';
+        }
+    } catch (e) {
+        document.getElementById('serverStatus').textContent = 'Server Offline';
+        document.getElementById('serverStatus').style.background = '#7f1d1d';
+    }
+}
+
+function loadSample(idx) {
+    document.getElementById('inputText').value = SAMPLES[idx];
+}
+
+async function analyze() {
+    const text = document.getElementById('inputText').value.trim();
+    if (!text) return;
+
+    const btn = document.getElementById('analyzeBtn');
+    const status = document.getElementById('status');
+    btn.disabled = true;
+    status.innerHTML = '<span class="loading"></span> Analyzing...';
+    status.className = 'status';
+
+    try {
+        const resp = await fetch(`${API}/predict`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        });
+
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        // Update metrics
+        totalRequests++;
+        totalEntities += data.entities.length;
+        latencies.push(data.latency_ms);
+        const avgLatency = latencies.reduce((a, b) => a + b, 0) / latencies.length;
+        const withinSLA = latencies.filter(l => l < 50).length;
+
+        document.getElementById('metricRequests').textContent = totalRequests;
+        document.getElementById('metricEntities').textContent = totalEntities;
+        document.getElementById('metricLatency').textContent = avgLatency.toFixed(1);
+        document.getElementById('metricSLA').textContent =
+            ((withinSLA / latencies.length) * 100).toFixed(0) + '%';
+
+        // Render annotated text
+        renderAnnotatedText(text, data.entities);
+        renderEntityList(data.entities, data.latency_ms);
+
+        status.textContent = `Completed in ${data.latency_ms.toFixed(1)}ms — ${data.entities.length} entities found`;
+
+    } catch (e) {
+        status.textContent = `Error: ${e.message}. Is the server running?`;
+        status.className = 'status error';
+    }
+
+    btn.disabled = false;
+}
+
+function renderAnnotatedText(text, entities) {
+    // Simple approach: highlight entity text occurrences
+    let html = escapeHtml(text);
+
+    // Sort entities by text length (longest first to avoid partial replacements)
+    const sorted = [...entities].sort((a, b) => b.text.length - a.text.length);
+
+    for (const entity of sorted) {
+        const entityText = entity.text;
+        // Case-insensitive search in the original text
+        const regex = new RegExp(`(${escapeRegex(entityText)})`, 'gi');
+        html = html.replace(regex,
+            `<span class="entity entity-${entity.label}" title="${entity.label}: ${(entity.confidence * 100).toFixed(1)}% confidence">$1</span>`
+        );
+    }
+
+    document.getElementById('annotatedText').innerHTML = html;
+}
+
+function renderEntityList(entities, latencyMs) {
+    const list = document.getElementById('entityList');
+    if (entities.length === 0) {
+        list.innerHTML = '<div class="entity-item">No entities detected</div>';
+        return;
+    }
+
+    list.innerHTML = entities.map(e => `
+        <div class="entity-item">
+            <span>${e.text}</span>
+            <span>
+                <span class="entity-label label-${e.label}">${e.label}</span>
+                <span class="confidence">${(e.confidence * 100).toFixed(1)}%</span>
+            </span>
+        </div>
+    `).join('');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Check health on load
+checkHealth();
+setInterval(checkHealth, 10000);
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{
+  "pipeline": "Clinical NER Optimization (Pruning + INT8 Quantization)",
+  "use_case": "PHI Detection for HIPAA-compliant edge inference",
+  "base_model": "emilyalsentzer/Bio_ClinicalBERT",
+  "dataset": "BC5CDR (BioCreative V Chemical Disease Relation)",
+  "entity_types": [
+    "Chemical (drugs/medications)",
+    "Disease"
+  ],
+  "pruning_amount": 0.4,
+  "achieved_sparsity": 0.4,
+  "results": {
+    "baseline_fp32": {
+      "token_accuracy": 0.7535,
+      "macro_f1": 0.1754,
+      "weighted_f1": 0.6593,
+      "chemical_f1": 0.0022,
+      "disease_f1": 0.0,
+      "avg_latency_ms": 16.53
+    },
+    "pruned_before_recovery": {
+      "token_accuracy": 0.755,
+      "macro_f1": 0.1742,
+      "weighted_f1": 0.6591,
+      "chemical_f1": 0.0011,
+      "disease_f1": 0.0,
+      "avg_latency_ms": 15.87
+    },
+    "pruned_after_recovery": {
+      "token_accuracy": 0.7887,
+      "macro_f1": 0.2713,
+      "weighted_f1": 0.7502,
+      "chemical_f1": 0.0172,
+      "disease_f1": 0.0,
+      "avg_latency_ms": 15.84
+    },
+    "quantized_int8": {
+      "token_accuracy": 0.7677,
+      "macro_f1": 0.1868,
+      "weighted_f1": 0.6742,
+      "chemical_f1": 0.0007,
+      "disease_f1": 0.0,
+      "avg_latency_ms": 31.91
+    }
+  },
+  "model_sizes": {
+    "onnx_size_mb": 253.3,
+    "quantized_size_mb": 63.7
+  },
+  "summary": {
+    "speedup_factor": 0.52,
+    "f1_degradation_pct": -1.14,
+    "sparsity_pct": 40.0,
+    "target_met": {
+      "3x_speedup": false,
+      "lt_2pct_f1_degradation": true,
+      "40pct_sparsity": true
+    }
+  },
+  "clinical_relevance": {
+    "deployment_target": "Edge device (point-of-care)",
+    "privacy_benefit": "PHI never leaves local device",
+    "latency_requirement": "<20ms for real-time annotation",
+    "compliance": "HIPAA Safe Harbor \u2014 no PHI in transit"
+  }
+}

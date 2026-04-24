@@ -1,0 +1,45 @@
+{
+  "overall_status": "WARN",
+  "findings": [
+    {
+      "component": "Model Optimization",
+      "metric": "F1 Degradation",
+      "value": "0.77%",
+      "threshold": "2.0%",
+      "severity": "OK",
+      "message": "F1 degradation within acceptable range (0.77% < 2.0%)"
+    },
+    {
+      "component": "Model Optimization",
+      "metric": "Speedup Factor",
+      "value": "0.36x",
+      "threshold": "2.0x",
+      "severity": "MEDIUM",
+      "message": "Speedup 0.36x below target 2.0x (may be hardware-dependent \u2014 INT8 optimized for x86 AVX-512)"
+    },
+    {
+      "component": "Model Optimization",
+      "metric": "Sparsity",
+      "value": "40.0%",
+      "threshold": "35.0%",
+      "severity": "OK",
+      "message": "Sparsity target met (40.0% >= 35.0%)"
+    },
+    {
+      "component": "Distillation",
+      "metric": "F1 Retention",
+      "value": "87.9%",
+      "threshold": "85.0%",
+      "severity": "OK",
+      "message": "F1 retention meets target (87.9% >= 85.0%)"
+    }
+  ],
+  "thresholds": {
+    "max_f1_degradation_pct": 2.0,
+    "min_speedup_factor": 2.0,
+    "max_latency_ms": 50.0,
+    "min_f1_retention_pct": 85.0,
+    "min_sparsity_pct": 35.0
+  },
+  "timestamp": "2026-04-23T09:52:16.749343"
+}

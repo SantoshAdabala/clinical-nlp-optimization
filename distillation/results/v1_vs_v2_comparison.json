@@ -1,0 +1,101 @@
+{
+  "title": "Student v1 vs v2 Side-by-Side Comparison",
+  "distillation_config": {
+    "v1": {
+      "epochs": 5,
+      "temperature": 4.0,
+      "alpha": 0.5,
+      "lr": 5e-05,
+      "warmup": "none"
+    },
+    "v2": {
+      "epochs": 10,
+      "temperature": 4.0,
+      "alpha": 0.5,
+      "lr": 5e-05,
+      "warmup": "10%"
+    }
+  },
+  "teacher": {
+    "model": "Bio_ClinicalBERT",
+    "parameters": 107723525,
+    "model_size_mb": 410.9,
+    "macro_f1": 0.8657,
+    "weighted_f1": 0.954,
+    "chemical_f1": 0.9168,
+    "disease_f1": 0.7799,
+    "chemical_precision": 0.9132,
+    "chemical_recall": 0.9204,
+    "disease_precision": 0.7473,
+    "disease_recall": 0.8154,
+    "latency_mean_ms": 20.3,
+    "latency_p50_ms": 19.94,
+    "latency_p95_ms": 21.65
+  },
+  "student_v1": {
+    "model": "DistilBERT (v1 \u2014 5 epochs, T=4, \u03b1=0.5)",
+    "parameters": 65196293,
+    "model_size_mb": 248.7,
+    "macro_f1": 0.7606,
+    "weighted_f1": 0.9156,
+    "chemical_f1": 0.7358,
+    "disease_f1": 0.6616,
+    "chemical_precision": 0.8695,
+    "chemical_recall": 0.6377,
+    "disease_precision": 0.7173,
+    "disease_recall": 0.614,
+    "latency_mean_ms": 10.69,
+    "latency_p50_ms": 10.62,
+    "latency_p95_ms": 11.28
+  },
+  "student_v2": {
+    "model": "DistilBERT (v2 \u2014 10 epochs, T=4.0, \u03b1=0.5)",
+    "parameters": 65196293,
+    "model_size_mb": 248.7,
+    "macro_f1": 0.807,
+    "weighted_f1": 0.9309,
+    "chemical_f1": 0.8592,
+    "disease_f1": 0.7048,
+    "chemical_precision": 0.894,
+    "chemical_recall": 0.8269,
+    "disease_precision": 0.7186,
+    "disease_recall": 0.6916,
+    "latency_mean_ms": 10.77,
+    "latency_p50_ms": 10.76,
+    "latency_p95_ms": 10.94
+  },
+  "improvement": {
+    "macro_f1_delta": 4.64,
+    "chemical_f1_delta": 12.34,
+    "disease_f1_delta": 4.32,
+    "f1_retention_v1": 87.9,
+    "f1_retention_v2": 93.2
+  },
+  "training_history_v2": [
+    {
+      "epoch": 1,
+      "loss": 1.734,
+      "val_macro_f1": 0.7585
+    },
+    {
+      "epoch": 2,
+      "loss": 0.6006,
+      "val_macro_f1": 0.8204
+    },
+    {
+      "epoch": 3,
+      "loss": 0.462,
+      "val_macro_f1": 0.8179
+    },
+    {
+      "epoch": 4,
+      "loss": 0.3956,
+      "val_macro_f1": 0.8101
+    },
+    {
+      "epoch": 5,
+      "loss": 0.3576,
+      "val_macro_f1": 0.7968
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "total_documents": 1000,
+  "total_words": 23200,
+  "avg_document_length": 23.2,
+  "std_document_length": 2.3,
+  "median_document_length": 23,
+  "p95_document_length": 27,
+  "top_20_words": [
+    {
+      "word": "follow-up",
+      "count": 440
+    },
+    {
+      "word": "daily",
+      "count": 350
+    },
+    {
+      "word": "appointment",
+      "count": 340
+    },
+    {
+      "word": "scheduled",
+      "count": 340
+    },
+    {
+      "word": "notes",
+      "count": 340
+    },
+    {
+      "word": "additional",
+      "count": 340
+    },
+    {
+      "word": "pain",
+      "count": 200
+    },
+    {
+      "word": "supplement",
+      "count": 200
+    },
+    {
+      "word": "readings",
+      "count": 200
+    },
+    {
+      "word": "levels",
+      "count": 150
+    },
+    {
+      "word": "blood",
+      "count": 150
+    },
+    {
+      "word": "easy",
+      "count": 150
+    },
+    {
+      "word": "started",
+      "count": 150
+    },
+    {
+      "word": "taking",
+      "count": 150
+    },
+    {
+      "word": "health",
+      "count": 150
+    },
+    {
+      "word": "recommended",
+      "count": 150
+    },
+    {
+      "word": "improvement",
+      "count": 100
+    },
+    {
+      "word": "three",
+      "count": 100
+    },
+    {
+      "word": "therapy",
+      "count": 100
+    },
+    {
+      "word": "exam",
+      "count": 100
+    }
+  ],
+  "rating_distribution": {
+    "2": 100,
+    "3": 250,
+    "4": 500,
+    "5": 150
+  },
+  "pipeline_metrics": {
+    "mode": "local_test",
+    "input_records": 1000,
+    "note": "Synthetic data \u2014 multiply by 1000x for EMR scale estimate"
+  }
+}

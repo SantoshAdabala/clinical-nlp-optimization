@@ -1,0 +1,16 @@
+{
+  "pipeline": "Weak Labeling (Teacher \u2192 PubMed \u2192 Silver Labels)",
+  "input": "data/pubmed/pubmed_abstracts.parquet",
+  "total_abstracts": 7064,
+  "total_entities": 28415,
+  "high_confidence_entities": 19506,
+  "confidence_threshold": 0.85,
+  "entity_counts": {
+    "Chemical": 9109,
+    "Disease": 10397
+  },
+  "runtime_seconds": 306.5,
+  "throughput_docs_per_sec": 23.0,
+  "output_file": "output/weak_labels_pubmed/weak_labels_pubmed.jsonl",
+  "teacher_model": "../01-distillation/models/teacher"
+}

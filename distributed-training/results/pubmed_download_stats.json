@@ -1,0 +1,17 @@
+{
+  "total_abstracts": 7064,
+  "search_queries": [
+    "drug therapy clinical trial",
+    "medication adverse effects treatment",
+    "disease diagnosis pharmacotherapy",
+    "clinical pharmacology drug interaction",
+    "chemotherapy cancer treatment regimen",
+    "antibiotic infection treatment",
+    "cardiovascular disease medication",
+    "diabetes mellitus drug therapy",
+    "respiratory disease inhaled therapy",
+    "autoimmune disease immunotherapy"
+  ],
+  "avg_length": 1386.5,
+  "output_file": "data/pubmed/pubmed_abstracts.parquet"
+}

@@ -1,0 +1,8 @@
+{
+  "cluster_id": "j-1GNLMQAZ3TFH5",
+  "bucket": "clinical-nlp-pipeline-488122405413",
+  "region": "us-east-1",
+  "instance_type": "m5.xlarge",
+  "num_workers": 3,
+  "output_path": "s3://clinical-nlp-pipeline-488122405413/output/clinical-nlp-features/"
+}

@@ -1,0 +1,29 @@
+{
+  "latency": {
+    "test": "Mann-Whitney U",
+    "mean_a_ms": 49.72,
+    "mean_b_ms": 26.2,
+    "mean_difference_ms": 23.52,
+    "ci_95_low": 17.25,
+    "ci_95_high": 29.79,
+    "u_statistic": 9901.0,
+    "p_value": 0.0,
+    "significant": "True",
+    "winner": "A"
+  },
+  "f1_score": {
+    "test": "Wilcoxon signed-rank",
+    "mean_a": 0.9175,
+    "mean_b": 0.8081,
+    "mean_difference": 0.1094,
+    "ci_95_low": 0.0644,
+    "ci_95_high": 0.1545,
+    "w_statistic": 47.0,
+    "p_value": 1e-06,
+    "significant": true,
+    "winner": "A"
+  },
+  "recommendation": "KEEP Model A \u2014 Model B has significantly worse F1",
+  "confidence_level": 0.95,
+  "num_samples": 100
+}

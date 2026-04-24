@@ -1,0 +1,6 @@
+# Copy this to terraform.tfvars and fill in your values
+aws_region        = "us-east-1"
+project_name      = "clinical-nlp-pipeline"
+environment       = "dev"
+emr_instance_type = "m5.xlarge"
+emr_worker_count  = 3

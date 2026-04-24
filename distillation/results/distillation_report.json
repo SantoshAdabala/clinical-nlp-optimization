@@ -1,0 +1,27 @@
+{
+  "teacher": {
+    "parameters": 107723525,
+    "model_size_mb": 410.9,
+    "macro_f1": 0.8657,
+    "chemical_f1": 0.9168,
+    "disease_f1": 0.7799,
+    "latency_mean_ms": 39.04,
+    "latency_p50_ms": 38.74,
+    "latency_p95_ms": 40.37
+  },
+  "student": {
+    "parameters": 66366725,
+    "model_size_mb": 253.2,
+    "macro_f1": 0.7606,
+    "chemical_f1": 0.7358,
+    "disease_f1": 0.6616,
+    "latency_mean_ms": 20.89,
+    "latency_p50_ms": 20.97,
+    "latency_p95_ms": 21.33
+  },
+  "summary": {
+    "f1_retention_pct": 87.9,
+    "param_reduction_pct": 38.4,
+    "speedup": 1.87
+  }
+}

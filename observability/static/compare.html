@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher vs Student — NER Comparison</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+        .header { background: #1e293b; border-bottom: 1px solid #334155; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+        .header h1 { font-size: 20px; font-weight: 600; }
+        .header a { color: #94a3b8; text-decoration: none; font-size: 13px; }
+        .header a:hover { color: #3b82f6; }
+
+        .input-section { max-width: 1200px; margin: 24px auto; padding: 0 32px; }
+        .input-section textarea { width: 100%; height: 120px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; padding: 16px; font-family: inherit; font-size: 14px; line-height: 1.6; resize: vertical; }
+        .input-section textarea:focus { outline: none; border-color: #3b82f6; }
+
+        .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .btn { background: #3b82f6; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+        .btn:hover { background: #2563eb; }
+        .btn:disabled { background: #475569; cursor: not-allowed; }
+        .btn-sample { background: transparent; border: 1px solid #475569; color: #94a3b8; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+        .btn-sample:hover { border-color: #3b82f6; color: #3b82f6; }
+
+        .comparison { max-width: 1200px; margin: 24px auto; padding: 0 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+        .model-panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; overflow: hidden; }
+        .model-header { padding: 16px 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        .model-name { font-weight: 600; font-size: 15px; }
+        .model-badge { padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .badge-teacher { background: #1e3a5f; color: #93c5fd; }
+        .badge-student { background: #065f46; color: #6ee7b7; }
+
+        .model-stats { display: flex; gap: 16px; padding: 12px 20px; border-bottom: 1px solid #334155; font-size: 12px; color: #94a3b8; }
+        .stat { display: flex; flex-direction: column; }
+        .stat-value { color: #f1f5f9; font-weight: 600; font-size: 14px; }
+
+        .annotated { padding: 20px; line-height: 1.8; font-size: 14px; min-height: 150px; }
+
+        .entity { padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+        .entity-Chemical { background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); color: #93c5fd; }
+        .entity-Disease { background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; }
+
+        .entity-list { padding: 0 20px 20px; }
+        .entity-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #0f172a; border-radius: 6px; margin-bottom: 4px; font-size: 12px; }
+        .entity-label { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+        .label-Chemical { background: #1e3a5f; color: #93c5fd; }
+        .label-Disease { background: #5f1e1e; color: #fca5a5; }
+        .confidence { color: #64748b; font-size: 11px; margin-left: 6px; }
+
+        .legend { display: flex; gap: 16px; padding: 12px 20px; font-size: 12px; border-bottom: 1px solid #334155; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+        .status { font-size: 12px; color: #64748b; margin-top: 8px; }
+        .loading { display: inline-block; width: 14px; height: 14px; border: 2px solid #475569; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 6px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .summary-bar { max-width: 1200px; margin: 0 auto 24px; padding: 0 32px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .summary-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; text-align: center; }
+        .summary-label { font-size: 11px; color: #64748b; }
+        .summary-values { display: flex; justify-content: center; gap: 16px; margin-top: 4px; }
+        .sv { font-size: 14px; font-weight: 600; }
+        .sv-teacher { color: #93c5fd; }
+        .sv-student { color: #6ee7b7; }
+
+        @media (max-width: 768px) { .comparison { grid-template-columns: 1fr; } .summary-bar { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Teacher vs Student — NER</h1>
+        <a href="/app">← Single Model View</a>
+    </div>
+
+    <div class="input-section">
+        <textarea id="inputText" placeholder="Paste clinical text here..."></textarea>
+        <div class="btn-row">
+            <button class="btn" id="compareBtn" onclick="compare()">Compare Models</button>
+            <button class="btn-sample" onclick="loadSample(0)">Diabetes</button>
+            <button class="btn-sample" onclick="loadSample(1)">COPD</button>
+            <button class="btn-sample" onclick="loadSample(2)">Cardiology</button>
+            <button class="btn-sample" onclick="loadSample(3)">Oncology</button>
+        </div>
+        <div class="status" id="status"></div>
+    </div>
+
+    <div class="summary-bar" id="summaryBar" style="display:none;">
+        <div class="summary-card">
+            <div class="summary-label">Entities Found</div>
+            <div class="summary-values"><span class="sv sv-teacher" id="sTeacherEnt">-</span><span class="sv sv-student" id="sStudentEnt">-</span></div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Latency (ms)</div>
+            <div class="summary-values"><span class="sv sv-teacher" id="sTeacherLat">-</span><span class="sv sv-student" id="sStudentLat">-</span></div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Parameters</div>
+            <div class="summary-values"><span class="sv sv-teacher">107.7M</span><span class="sv sv-student">65.2M</span></div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Model Size</div>
+            <div class="summary-values"><span class="sv sv-teacher">411MB</span><span class="sv sv-student">249MB</span></div>
+        </div>
+    </div>
+
+    <div class="comparison">
+        <div class="model-panel">
+            <div class="model-header">
+                <span class="model-name">Teacher (Bio_ClinicalBERT)</span>
+                <span class="model-badge badge-teacher">107.7M params</span>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background:rgba(59,130,246,0.4)"></div>Chemical</div>
+                <div class="legend-item"><div class="legend-dot" style="background:rgba(239,68,68,0.4)"></div>Disease</div>
+            </div>
+            <div class="annotated" id="teacherText">Run a comparison to see results...</div>
+            <div class="entity-list" id="teacherEntities"></div>
+        </div>
+
+        <div class="model-panel">
+            <div class="model-header">
+                <span class="model-name">Student (DistilClinicalBERT)</span>
+                <span class="model-badge badge-student">65.2M params</span>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background:rgba(59,130,246,0.4)"></div>Chemical</div>
+                <div class="legend-item"><div class="legend-dot" style="background:rgba(239,68,68,0.4)"></div>Disease</div>
+            </div>
+            <div class="annotated" id="studentText">Run a comparison to see results...</div>
+            <div class="entity-list" id="studentEntities"></div>
+        </div>
+    </div>
+</body>
+</html>
+
+<script>
+const API = 'http://localhost:8000';
+
+const SAMPLES = [
+    "Patient is a 58-year-old male with type 2 diabetes mellitus and hypertension. Currently on metformin 1000mg BID, lisinopril 20mg daily, and amlodipine 5mg daily. Recent HbA1c 7.8%. Discussed adding empagliflozin 10mg daily for combined glycemic and renal benefit. Continue aspirin 81mg daily.",
+    "Discharge summary: 72-year-old female admitted for acute exacerbation of COPD with pneumonia. Started on ceftriaxone 1g IV and azithromycin 500mg IV. Transitioned to oral levofloxacin 750mg daily. Prednisone taper initiated. Home medications: tiotropium 18mcg inhaled daily, fluticasone-salmeterol 250/50 BID, montelukast 10mg daily.",
+    "Cardiology consultation: New-onset atrial fibrillation. CHA2DS2-VASc score 4. Started apixaban 5mg BID for stroke prophylaxis. Metoprolol succinate 50mg daily for rate control. Continue atorvastatin 40mg daily. Avoid NSAIDs due to anticoagulation.",
+    "67-year-old female with stage IIIB non-small cell lung cancer, chronic kidney disease stage 3, and atrial fibrillation admitted for neutropenic fever. Current medications include carboplatin, paclitaxel, dexamethasone, apixaban, metoprolol succinate, furosemide, and ondansetron. Creatinine 2.1, eGFR 32. Holding carboplatin due to nephrotoxicity concern. Started vancomycin and piperacillin-tazobactam empirically."
+];
+
+function loadSample(idx) { document.getElementById('inputText').value = SAMPLES[idx]; }
+
+async function compare() {
+    const text = document.getElementById('inputText').value.trim();
+    if (!text) return;
+
+    const btn = document.getElementById('compareBtn');
+    const status = document.getElementById('status');
+    btn.disabled = true;
+    status.innerHTML = '<span class="loading"></span> Running both models...';
+
+    try {
+        const resp = await fetch(`${API}/compare`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        // Summary bar
+        document.getElementById('summaryBar').style.display = 'grid';
+        document.getElementById('sTeacherEnt').textContent = data.teacher.num_entities;
+        document.getElementById('sStudentEnt').textContent = data.student.num_entities;
+        document.getElementById('sTeacherLat').textContent = data.teacher.latency_ms.toFixed(1);
+        document.getElementById('sStudentLat').textContent = data.student.latency_ms.toFixed(1);
+
+        // Render both panels
+        renderPanel('teacherText', 'teacherEntities', text, data.teacher.entities);
+        renderPanel('studentText', 'studentEntities', text, data.student.entities);
+
+        status.textContent = `Teacher: ${data.teacher.latency_ms.toFixed(1)}ms (${data.teacher.num_entities} entities) | Student: ${data.student.latency_ms.toFixed(1)}ms (${data.student.num_entities} entities)`;
+    } catch (e) {
+        status.textContent = `Error: ${e.message}. Is the server running?`;
+    }
+    btn.disabled = false;
+}
+
+function renderPanel(textId, listId, text, entities) {
+    let html = escapeHtml(text);
+    const sorted = [...entities].sort((a, b) => b.text.length - a.text.length);
+    for (const e of sorted) {
+        const regex = new RegExp(`(${escapeRegex(e.text)})`, 'gi');
+        html = html.replace(regex, `<span class="entity entity-${e.label}" title="${e.label}: ${(e.confidence*100).toFixed(1)}%">$1</span>`);
+    }
+    document.getElementById(textId).innerHTML = html;
+
+    const list = document.getElementById(listId);
+    if (entities.length === 0) {
+        list.innerHTML = '<div class="entity-item">No entities detected</div>';
+        return;
+    }
+    list.innerHTML = entities.map(e => `
+        <div class="entity-item">
+            <span>${e.text}</span>
+            <span><span class="entity-label label-${e.label}">${e.label}</span><span class="confidence">${(e.confidence*100).toFixed(1)}%</span></span>
+        </div>
+    `).join('');
+}
+
+function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+</script>
+</body>
+</html>

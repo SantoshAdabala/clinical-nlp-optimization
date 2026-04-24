@@ -1,0 +1,45 @@
+# Model files (too large for GitHub)
+distillation/models/
+model-optimization/models/
+
+# Downloaded data
+distributed-training/data/
+distributed-training/output/
+
+# Runtime logs
+observability/logs/
+
+# Virtual environments
+.venv/
+distillation/.venv/
+**/venv/
+**/.venv/
+
+# Personal study files (not for public repo)
+FULL_PROJECT_GUIDE.md
+PORTFOLIO_NUMBERS.json
+**/UNDERSTANDING_THE_CODE.md
+**/PROJECT_SPEC.md
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+.kiro/
+
+# Terraform state (contains secrets)
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!terraform.tfvars.example
