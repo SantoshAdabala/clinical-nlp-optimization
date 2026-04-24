@@ -7,46 +7,28 @@ a clinical NER (Named Entity Recognition) use case for healthcare.
 ## System Design
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                          CLINICAL NLP PLATFORM                                   │
-│                                                                                  │
-│  ┌─────��───────────┐    ┌─────────────────┐    ┌─────────────────────────────┐  │
-│  │  DATA LAYER     │    │  MODEL LAYER    │    │  SERVING LAYER              │  │
-│  │                 │    │                 │    │                             │  │
-│  │  Component 2    │    │  Component 1    │    │  Component 6                │  │
-│  │  ┌───────────┐  │    │  ┌───────────┐  │    │  ┌─────────────────────┐   │  │
-│  │  │ PySpark   │  │    │  │ Knowledge │  │    │  │ FastAPI + Prometheus│   │  │
-│  │  │ Pipeline  │──┼───▶│  │ Distill.  │  │    │  │ + OpenTelemetry    │   │  │
-│  │  │ (EMR)     │  │    │  │ 110M→66M  │  │    │  │ + JSON Logging     │   │  │
-│  │  └───────────┘  │    │  └─────┬─────┘  │    │  └──────────┬──────────┘   │  │
-│  │        │        │    │        │        │    │             │              │  │
-│  │  ┌───────────┐  │    │        ▼        │    │  ┌──────────▼──────────┐   │  │
-│  │  │ S3 Data   │  │    │  Component 3    │    │  │ Grafana Dashboard  │   │  │
-│  │  │ Lake      │  │    │  ┌───────────┐  │    │  │ SLA Monitoring     │   │  │
-│  │  └───────────┘  │    │  │ Pruning   │  │    │  └─────────────────────┘   │  │
-│  │        │        │    │  │ + INT8    │  │    │                             │  │
-│  │  ┌───────────┐  │    │  │ Quantize  │  │    └─────────────────────────────┘  │
-│  │  │ Step      │  │    │  │ 411MB→104MB│ │                                     │
-│  │  │ Functions │  │    │  └─────┬─────┘  │    ┌─────────────────────────────┐  │
-│  │  └───────────┘  │    │        │        │    │  EVALUATION LAYER           │  │
-│  │        │        │    │        ▼        │    │                             │  │
-│  │  ┌───────────┐  │    │  Deploy-ready   │    │  Component 5                │  │
-│  │  │ Terraform │  │    │  ONNX Model     │    │  ┌─────────────────────┐   │  │
-│  │  │ (IaC)     │  │    │                 │    │  │ A/B Testing         │   │  │
-│  │  └───────────┘  │    └─────────────────┘    │  │ Mann-Whitney +      │   │  │
-│  │                 │                            │  │ Wilcoxon Tests      │   │  │
-│  └─────────────────┘                            │  └─────────────────────┘   │  │
-│                                                  │                             │  │
-│                         ┌─────────────────┐     │  Component 4                │  │
-│                         │  AUTOMATION     │     │  ┌─────────────────────┐   │  │
-│                         │                 │     │  │ LangChain Agent     │   │  │
-│                         │  Component 4    │◀────│  │ Reads reports,      │   │  │
-│                         │  Agent reads    │     │  │ detects regressions,│   │  │
-│                         │  all reports    │     │  │ generates summaries │   │  │
-│                         │  autonomously   │     │  └─────────────────────┘   │  │
-│                         └─────────────────┘     │                             │  │
-│                                                  └─────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│   DATA LAYER                MODEL LAYER              SERVING     │
+│                                                                  │
+│   PubMed (7K)               Bio_ClinicalBERT         FastAPI     │
+│       │                     (Teacher, 110M)           Server     │
+│       ▼                          │                      │        │
+│   Spark/EMR ──── Weak ──────────▶│                  Prometheus   │
+│   (900K docs)    Labels          │                  OpenTelemetry│
+│       │                          ▼                  Grafana      │
+│   S3 + TF-IDF           DistilClinicalBERT              │       │
+│                          (Student, 65M)             Annotation   │
+│   Step Functions              │                     UI           │
+│   Terraform                   ▼                         │        │
+│                          Prune (40%)                    │        │
+│                          INT8 (62MB)                    │        │
+│                               │                         │        │
+│                               ▼                         │        │
+│                          A/B Testing ◄──────────────────┘        │
+│                          LangChain Agent                         │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ## Components
@@ -309,13 +291,3 @@ python test_client.py       # Terminal 2
 | Evaluation | Statistical tests | Not just averages — p-values and confidence intervals |
 | Observability | Prometheus + OTel + JSON logs | Industry standard three pillars |
 | Agent LLM | Nvidia Nemotron via OpenRouter | Free, healthcare-relevant, tool calling support |
-
-## What This Portfolio Demonstrates
-
-1. **Model compression pipeline** — distillation + pruning + quantization (Components 1, 3)
-2. **Distributed data processing** — PySpark on EMR with Terraform IaC (Component 2)
-3. **Production ML engineering** — serving, monitoring, SLA tracking (Component 6)
-4. **Statistical rigor** — A/B testing with proper hypothesis tests (Component 5)
-5. **Agentic AI** — LLM with tools for autonomous analysis (Component 4)
-6. **Healthcare domain knowledge** — PHI awareness, HIPAA framing, clinical NLP
-7. **End-to-end ownership** — from data pipeline to production monitoring
