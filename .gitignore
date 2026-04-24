@@ -20,6 +20,8 @@ FULL_PROJECT_GUIDE.md
 PORTFOLIO_NUMBERS.json
 **/UNDERSTANDING_THE_CODE.md
 **/PROJECT_SPEC.md
+**/README.md
+!README.md
 
 # Python cache
 __pycache__/
