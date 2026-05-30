@@ -36,7 +36,7 @@ Input:  "Patient was prescribed metformin 500mg for type 2 diabetes"
 Output: [metformin 500mg] → Chemical    [type 2 diabetes] → Disease
 ```
 
-The pipeline trains on [BC5CDR](https://huggingface.co/datasets/tner/bc5cdr), a public biomedical NER dataset. Same entity types (Chemical, Disease) as real PHI detection, but no actual patient data — so it's safe to run and share.
+The pipeline trains on [BC5CDR](https://huggingface.co/datasets/tner/bc5cdr), a public biomedical NER dataset. Same entity types (Chemical, Disease) as real PHI detection, but no actual patient data - so it's safe to run and share.
 
 ---
 
@@ -46,8 +46,8 @@ The pipeline trains on [BC5CDR](https://huggingface.co/datasets/tner/bc5cdr), a 
 
 The teacher is `Bio_ClinicalBERT` (107.7M params). I tried two student architectures:
 
-- **Student v1** — generic `DistilBERT` fine-tuned for 5 epochs
-- **Student v2** — `DistilClinicalBERT` (clinical pre-training) fine-tuned for 10 epochs with 10% warmup
+- **Student v1** - generic `DistilBERT` fine-tuned for 5 epochs
+- **Student v2** - `DistilClinicalBERT` (clinical pre-training) fine-tuned for 10 epochs with 10% warmup
 
 | | Teacher | Student v1 | Student v2 |
 |---|---|---|---|
@@ -57,7 +57,7 @@ The teacher is `Bio_ClinicalBERT` (107.7M params). I tried two student architect
 | Disease F1 | 77.99% | 66.16% | **70.48%** |
 | Latency | 39.0ms | 10.7ms | 10.8ms |
 | Size | 410.9MB | 248.7MB | 248.7MB |
-| F1 retention | — | 87.9% | **93.2%** |
+| F1 retention | - | 87.9% | **93.2%** |
 
 The domain-matched student (v2) improved Macro F1 by +4.64% and Chemical Recall by +18.92% over the generic student. Switching the student base model mattered more than any hyperparameter change.
 
@@ -80,7 +80,7 @@ Pruning (40% sparsity) + INT8 quantization via ONNX Runtime:
 | Baseline ONNX FP32 | 253.3MB | 16.5ms |
 | INT8 | **63.7MB** | 31.9ms* |
 
-*INT8 is slower on macOS ARM — these kernels are optimized for x86 AVX-512. On an actual server (c5/c6i) you'd expect ~3× speedup.*
+*INT8 is slower on macOS ARM - these kernels are optimized for x86 AVX-512. On an actual server (c5/c6i) you'd expect ~3× speedup.*
 
 The 40% sparsity target was met with only 0.13% F1 drop on the teacher. Student quantization cuts size by ~75%.
 
@@ -96,7 +96,7 @@ Downloaded 7,064 PubMed abstracts via the NCBI API across 10 clinical search que
 | Disease | 10,397 |
 | Runtime | 306.5 sec (23 docs/sec) |
 
-The PySpark pipeline handles the full preprocessing stack — cleaning, tokenization, TF-IDF feature extraction, Parquet output. The local test runs on synthetic data; the EMR deployment scales this to arbitrary volume.
+The PySpark pipeline handles the full preprocessing stack - cleaning, tokenization, TF-IDF feature extraction, Parquet output. The local test runs on synthetic data; the EMR deployment scales this to arbitrary volume.
 
 ### A/B testing
 
@@ -104,7 +104,7 @@ Statistical comparison using Mann-Whitney and Wilcoxon signed-rank tests (100 sa
 
 **Teacher vs Student v2:**
 - Student retains **88.1%** of teacher F1 (Wilcoxon p < 0.000001)
-- Student is 1.9× faster (52.4ms → 28.0ms, Mann-Whitney p < 0.000001)
+- Student is 1.9× faster (52.4ms -> 28.0ms, Mann-Whitney p < 0.000001)
 - Recommendation: deploy student
 
 **Student v1 vs Student v2:**
@@ -115,7 +115,7 @@ Statistical comparison using Mann-Whitney and Wilcoxon signed-rank tests (100 sa
 100-request load test, FastAPI server with Prometheus + OpenTelemetry:
 - **97% SLA compliance** (97/100 requests under 50ms)
 - 0 errors
-- Latency range: 20.9ms – 56.3ms (two spikes above 50ms)
+- Latency range: 20.9ms to 56.3ms (two spikes above 50ms)
 
 ---
 
@@ -279,5 +279,5 @@ python test_client.py          # terminal 2
 ## Notes
 
 - INT8 quantization target was <20ms latency for real-time point-of-care annotation. The student FP32 hits 10.8ms; INT8 is slower on macOS ARM (31.9ms) but should be faster on x86 AVX-512 server targets.
-- The LangChain agent uses Nvidia Nemotron via OpenRouter — it's free and works fine for analyzing benchmark JSON outputs. Any tool-calling model works.
+- The LangChain agent uses Nvidia Nemotron via OpenRouter - it's free and works fine for analyzing benchmark JSON outputs. Any tool-calling model works.
 - `kv_cache_quantization/` contains PolarQuant, a 3-bit KV cache implementation I was experimenting with. It's separate from the main pipeline.
