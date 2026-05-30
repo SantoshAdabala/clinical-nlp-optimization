@@ -32,29 +32,59 @@
 
 ## System Design
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                                                                  │
-│  DATA LAYER            MODEL LAYER              SERVING          │
-│                                                                  │
-│  PubMed (7K)       Bio_ClinicalBERT           FastAPI            │
-│      │              (Teacher, 110M)            Server            │
-│      ▼                    │                      │               │
-│  Spark/EMR  ──── Weak ────────────▶         Prometheus           │
-│  (900K docs)    Labels    │                 OpenTelemetry         │
-│      │                    ▼                 Grafana              │
-│   S3 + TF-IDF    DistilClinicalBERT                              │
-│                   (Student, 65M)          Annotation             │
-│  Step Functions                               UI                 │
-│  Terraform              ▼                                        │
-│                   Prune (40%)                                    │
-│                   INT8 (62MB)                                    │
-│                         │                                        │
-│                         ▼                                        │
-│                    A/B Testing ◄──────────────────┘             │
-│                   LangChain Agent                                │
-│                                                                  │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph DATA["🗄️ Data Layer"]
+        PM["PubMed Abstracts\n(900K docs)"]
+        BC["BC5CDR Dataset\n(labeled NER)"]
+        S3["AWS S3\n(Parquet)"]
+        EMR["PySpark on AWS EMR\n4× m5.xlarge\n4,350 docs/sec"]
+        TF["TF-IDF + N-gram\nFeature Extraction"]
+        SF["AWS Step Functions\n+ Terraform IaC"]
+        PM --> EMR
+        EMR --> TF --> S3
+        SF -.->|orchestrates| EMR
+    end
+
+    subgraph MODEL["🧠 Model Layer"]
+        direction TB
+        T["Bio_ClinicalBERT\nTeacher · 110M params · 39ms"]
+        WL["Weak Labeling\n19,506 entities"]
+        S["DistilClinicalBERT\nStudent · 65M params · 11ms"]
+        PR["Structured Pruning\n40% sparsity"]
+        Q["INT8 Quantization\n411MB → 62.6MB"]
+        BC --> T
+        S3 --> T
+        T -->|knowledge distillation| S
+        T -->|teacher inference| WL
+        S --> PR --> Q
+    end
+
+    subgraph EVAL["📊 Evaluation Layer"]
+        AB["A/B Testing\nMann-Whitney · Wilcoxon"]
+        AG["LangChain Agent\nAuto-analysis · Nemotron LLM"]
+        Q --> AB
+        T --> AB
+        AB --> AG
+    end
+
+    subgraph PROD["🚀 Production Layer"]
+        API["FastAPI Inference Server"]
+        PROM["Prometheus\nMetrics"]
+        OT["OpenTelemetry\nTracing"]
+        LOG["Structured JSON\nLogging"]
+        GR["Grafana\nSLA Dashboard"]
+        UI["Annotation UI\n+ Teacher vs Student Compare"]
+        Q --> API
+        API --> PROM --> GR
+        API --> OT
+        API --> LOG
+        API --> UI
+    end
+
+    DATA --> MODEL
+    MODEL --> EVAL
+    EVAL --> PROD
 ```
 
 ---
@@ -172,44 +202,41 @@ The pipeline optimizes this model for edge deployment — fast enough for real-t
 
 ## Data Flow
 
-```
-                    ┌──────────────────────────────────────────┐
-                    │           DATA PIPELINE                  │
-                    │                                          │
-  Raw Clinical ──▶  │  PySpark (Component 2)                  │
-  Text (S3)         │  ├── Clean + normalize                  │
-                    │  ├── Tokenize                           │
-                    │  ├── TF-IDF + N-gram features           │
-                    │  └── Write to S3 (Parquet)              │
-                    └──────────────┬───────────────────────────┘
-                                   │
-                    ┌──────────────▼───────────────────────────┐
-                    │           MODEL PIPELINE                 │
-                    │                                          │
-  BC5CDR Dataset ──▶│  1. Fine-tune Bio_ClinicalBERT (NER)   │
-                    │  2. Distill → DistilClinicalBERT (Comp 1)│
-                    │  3. Prune 40% + INT8 Quantize (Comp 3)  │
-                    │  4. Export ONNX for edge deployment      │
-                    └──────────────┬───────────────────────────┘
-                                   │
-                    ┌──────────────▼───────────────────────────┐
-                    │           EVALUATION                     │
-                    │                                          │
-                    │  5. A/B Test: Teacher vs Optimized       │
-                    │     └── Mann-Whitney + Wilcoxon tests    │
-                    │  4. Agent auto-analyzes results          │
-                    │     └── Reads reports, flags regressions │
-                    └──────────────┬───────────────────────────┘
-                                   │
-                    ┌──────────────▼───────────────────────────┐
-                    │           PRODUCTION                     │
-                    │                                          │
-                    │  6. FastAPI inference server             │
-                    │     ├── Prometheus metrics (/metrics)    │
-                    │     ├── OpenTelemetry tracing            │
-                    │     ├── Structured JSON logging          │
-                    │     └── Grafana SLA dashboard            │
-                    └──────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph INPUT["Inputs"]
+        RAW["Raw Clinical Text\n(S3)"]
+        BC5["BC5CDR Dataset"]
+    end
+
+    subgraph PIPE["Data Pipeline — PySpark / EMR"]
+        CL["Clean + Normalize"]
+        TOK["Tokenize"]
+        FEAT["TF-IDF + N-gram\nFeatures"]
+        PAR["Write Parquet\nto S3"]
+        RAW --> CL --> TOK --> FEAT --> PAR
+    end
+
+    subgraph MPIPE["Model Pipeline"]
+        FT["1. Fine-tune\nBio_ClinicalBERT"]
+        DIST["2. Distill →\nDistilClinicalBERT"]
+        OPT["3. Prune 40%\n+ INT8 Quantize"]
+        ONNX["4. Export ONNX\nfor Edge"]
+        BC5 --> FT --> DIST --> OPT --> ONNX
+        PAR --> FT
+    end
+
+    subgraph EVALPIPE["Evaluation"]
+        AB2["5. A/B Test\nTeacher vs Optimized"]
+        AGT["6. LangChain Agent\nAuto-analyzes Results"]
+        ONNX --> AB2 --> AGT
+    end
+
+    subgraph SERVE["Production Serving"]
+        FAPI["FastAPI Server"]
+        MON["Prometheus + OTel\n+ Grafana"]
+        ONNX --> FAPI --> MON
+    end
 ```
 
 ---
@@ -323,7 +350,7 @@ python test_client.py       # Terminal 2 — sends 101 requests, reports SLA
 
 | Decision | Choice | Why |
 |---|---|---|
-| Domain | Clinical NER (healthcare) | Relevant to BCBS, demonstrates PHI awareness |
+| Domain | Clinical NER (healthcare) | Demonstrates PHI awareness relevant to real-world compliance |
 | Base model | Bio_ClinicalBERT | Pre-trained on clinical text, understands medical language |
 | Dataset | BC5CDR | Public biomedical NER, no PHI, same architecture as PHI detection |
 | Compression | Distillation → Pruning → INT8 | Three-stage pipeline, each independently valuable |
