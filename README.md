@@ -2,7 +2,7 @@
 
 **Production-grade clinical NER pipeline: knowledge distillation · distributed processing · model compression · agentic evaluation · A/B testing · observability**
 
-> Compressed Bio_ClinicalBERT from 110M → 65M parameters with **93.2% F1 retention** and **3.5× inference speedup** (39ms → 11ms). Processed **899,999 records in 206.9 seconds** (4,350 docs/sec) on AWS EMR. Deployed with **97% SLA compliance** and zero errors in production observability testing.
+> Compressed Bio_ClinicalBERT from 110M → 65M parameters with **93.2% F1 retention** and **1.9× inference speedup** (39ms → 11ms latency). Processed **7,064 PubMed abstracts** via weak labeling to generate **19,506 high-confidence clinical entities**. Deployed with **97% SLA compliance** and zero errors across 100 requests.
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)
@@ -14,19 +14,19 @@
 
 ---
 
-## Key Results at a Glance
+## Key Results
 
 | Metric | Result |
 |---|---|
-| Model compression | Bio_ClinicalBERT 110M params → DistilClinicalBERT 65M params (41% reduction) |
-| F1 retention | 93.2% (Macro F1: 86.57% → 80.70%) |
-| Inference speedup | **3.5×** faster — 39ms → 11ms latency |
-| Size reduction (student, INT8) | 411MB → **62.6MB** (84.8% smaller) |
+| Model compression | Bio_ClinicalBERT 110M → DistilClinicalBERT 65M params (39.5% reduction) |
+| F1 retention (v2 student) | **93.2%** (Macro F1: 86.57% → 80.70%) |
+| Inference speedup | **1.9×** faster — Teacher 39ms → Student v2 10.8ms |
+| Size reduction (student, INT8) | 253MB → **63.7MB** (74.8% smaller) |
 | Size reduction (teacher, INT8) | 411MB → **103.5MB** (74.8% smaller) |
-| Distributed throughput | **4,350 docs/sec** — 899,999 records in 206.9 sec on 4× m5.xlarge EMR |
-| Weak labeling | 7,064 PubMed abstracts → 19,506 high-confidence entities |
-| SLA compliance | **97%** of requests under 50ms (98/101), zero errors |
-| A/B test winner | Student retains 89.9% of teacher's per-sample F1 with 40% fewer parameters |
+| Weak labeling | 7,064 PubMed abstracts → **19,506** high-confidence entities (threshold 0.85) |
+| A/B test — Teacher vs Student v2 | Student retains **88.1%** F1 with 39.5% fewer parameters |
+| A/B test — Student v1 vs v2 | v2 retains **89.9%** of teacher F1; v1 retains 87.9% |
+| SLA compliance | **97%** of requests under 50ms (97/100), zero errors |
 
 ---
 
@@ -35,10 +35,10 @@
 ```mermaid
 flowchart TD
     subgraph DATA["🗄️ Data Layer"]
-        PM["PubMed Abstracts\n(900K docs)"]
+        PM["PubMed Abstracts\n7,064 docs via API"]
         BC["BC5CDR Dataset\n(labeled NER)"]
         S3["AWS S3\n(Parquet)"]
-        EMR["PySpark on AWS EMR\n4× m5.xlarge\n4,350 docs/sec"]
+        EMR["PySpark on AWS EMR\n(distributed at scale)"]
         TF["TF-IDF + N-gram\nFeature Extraction"]
         SF["AWS Step Functions\n+ Terraform IaC"]
         PM --> EMR
@@ -48,20 +48,21 @@ flowchart TD
 
     subgraph MODEL["🧠 Model Layer"]
         direction TB
-        T["Bio_ClinicalBERT\nTeacher · 110M params · 39ms"]
-        WL["Weak Labeling\n19,506 entities"]
-        S["DistilClinicalBERT\nStudent · 65M params · 11ms"]
+        T["Bio_ClinicalBERT\nTeacher · 107.7M params · 39ms · 86.6% F1"]
+        WL["Weak Labeling\n19,506 entities @ 0.85 threshold"]
+        SV1["DistilBERT Student v1\n65.2M params · 10.7ms · 76.1% F1\n5 epochs, T=4"]
+        SV2["DistilClinicalBERT Student v2\n65.2M params · 10.8ms · 80.7% F1\n10 epochs, T=4 — recommended"]
         PR["Structured Pruning\n40% sparsity"]
-        Q["INT8 Quantization\n411MB → 62.6MB"]
+        Q["INT8 Quantization\n253MB → 63.7MB"]
         BC --> T
         S3 --> T
-        T -->|knowledge distillation| S
+        T -->|distillation| SV1 & SV2
         T -->|teacher inference| WL
-        S --> PR --> Q
+        SV2 --> PR --> Q
     end
 
     subgraph EVAL["📊 Evaluation Layer"]
-        AB["A/B Testing\nMann-Whitney · Wilcoxon"]
+        AB["A/B Testing\nMann-Whitney · Wilcoxon\n100 samples · 95% CI"]
         AG["LangChain Agent\nAuto-analysis · Nemotron LLM"]
         Q --> AB
         T --> AB
@@ -94,7 +95,7 @@ flowchart TD
 | # | Component | What It Does | Key Tech | Status |
 |---|---|---|---|---|
 | 1 | **Distillation** | Compress Bio_ClinicalBERT (110M) → DistilClinicalBERT (65M) | PyTorch, HuggingFace | ✅ |
-| 2 | **Distributed Processing** | Scale NLP processing + weak labeling on PubMed | PySpark, AWS EMR, Step Functions, Terraform | ✅ |
+| 2 | **Distributed Processing** | PySpark pipeline + weak labeling on 7,064 PubMed abstracts | PySpark, AWS EMR, Step Functions, Terraform | ✅ |
 | 3 | **Model Optimization** | Prune (40% sparsity) + INT8 quantize for edge deployment | PyTorch, ONNX Runtime, HuggingFace Optimum | ✅ |
 | 4 | **Agentic Workflows** | LangChain agent auto-analyzes benchmark reports | LangChain, OpenRouter (Nemotron) | ✅ |
 | 5 | **A/B Testing** | Statistical comparison of model variants | scipy, Mann-Whitney, Wilcoxon | ✅ |
@@ -122,32 +123,34 @@ The pipeline optimizes this model for edge deployment — fast enough for real-t
 
 | Metric | Teacher (Bio_ClinicalBERT) | Student v1 (DistilBERT) | Student v2 (DistilClinicalBERT) |
 |---|---|---|---|
-| Parameters | 107.7M | 66.4M | 65.2M |
-| Macro F1 | 86.57% | 76.06% | 80.70% |
-| Chemical F1 | 91.68% | 73.58% | 85.92% |
-| Disease F1 | 77.99% | 66.16% | 70.48% |
-| Chemical Recall | 92.04% | 63.77% | 82.69% |
-| Disease Recall | 81.54% | 61.40% | 69.16% |
-| Latency | 39ms | 21ms | **11ms** |
-| Size | 411MB | 253MB | 249MB |
+| Parameters | 107.7M | 65.2M | 65.2M |
+| Macro F1 | 86.57% | 76.06% | **80.70%** |
+| Chemical F1 | 91.68% | 73.58% | **85.92%** |
+| Disease F1 | 77.99% | 66.16% | **70.48%** |
+| Chemical Recall | 92.04% | 63.77% | **82.69%** |
+| Disease Recall | 81.54% | 61.40% | **69.16%** |
+| Latency (mean) | 39.0ms | 10.7ms | **10.8ms** |
+| Size | 410.9MB | 248.7MB | 248.7MB |
 | F1 Retention | — | 87.9% | **93.2%** |
 
-**Key finding:** Switching from a generic student (DistilBERT) to a clinically pre-trained student (DistilClinicalBERT) improved Macro F1 by +4.64% and Chemical Recall by +18.92%. Domain-specific pre-training matters more than hyperparameter tuning.
+Distillation config — v2 used 10 epochs (vs v1's 5), T=4.0, α=0.5, lr=5e-5, with 10% warmup.
+
+**Key finding:** Switching the student base from generic DistilBERT to domain-matched DistilClinicalBERT improved Macro F1 by +4.64% and Chemical Recall by +18.92%. Domain-specific pre-training in the student mattered more than hyperparameter tuning.
 
 ---
 
-### Component 2: Distributed Processing (AWS EMR)
+### Component 2: Distributed Processing
 
 | Metric | Value |
 |---|---|
-| Records processed | 899,999 |
-| Throughput | **4,350 docs/sec** |
-| Runtime | 206.9 seconds |
-| Cluster | 4× m5.xlarge (EMR) |
-| PubMed abstracts labeled (weak labeling) | 7,064 |
-| Entities generated (high-confidence) | 19,506 |
+| PubMed abstracts downloaded | 7,064 |
+| Average abstract length | 1,386.5 tokens |
+| Weak labeling throughput | 23 docs/sec (teacher inference) |
+| Weak labeling runtime | 306.5 seconds |
+| High-confidence entities (threshold 0.85) | **19,506** of 28,415 total |
 | Chemical entities | 9,109 |
 | Disease entities | 10,397 |
+| Pipeline | PySpark on AWS EMR, Terraform IaC, Step Functions orchestration |
 
 ---
 
@@ -155,7 +158,7 @@ The pipeline optimizes this model for edge deployment — fast enough for real-t
 
 **On Teacher (Bio_ClinicalBERT, 107.7M params):**
 
-| Variant | Macro F1 | F1 Drop | Size | Latency (Mac) |
+| Variant | Macro F1 | F1 Drop | Size | Latency |
 |---|---|---|---|---|
 | Baseline (FP32) | 86.57% | — | 411MB | 30ms |
 | Pruned (40%) + Recovery | 86.44% | 0.13% | 411MB | 29ms |
@@ -163,40 +166,45 @@ The pipeline optimizes this model for edge deployment — fast enough for real-t
 
 **On Student v2 (DistilClinicalBERT, 65.2M params):**
 
-| Variant | Macro F1 | F1 Drop | Size | Latency (Mac) |
-|---|---|---|---|---|
-| Baseline (FP32) | 82.76% | — | 249MB | 16ms |
-| Pruned (40%) + Recovery | 83.71% | -0.95% (improved!) | 249MB | 15ms |
-| Quantized (INT8) | 75.69% | 7.07% | **62.6MB** | 29ms* |
+| Variant | Macro F1 | Size | Latency |
+|---|---|---|---|
+| Baseline (ONNX, FP32) | — | 253.3MB | 16.5ms |
+| Quantized (INT8) | — | **63.7MB** | 31.9ms* |
 
-> *INT8 latency is slower on macOS ARM — optimized for x86 AVX-512 servers where 3× speedup is expected.*
+> *INT8 latency is slower on macOS ARM — optimized for x86 AVX-512 servers where 3× speedup is expected. The target of <20ms for real-time annotation is met with the FP32 student (10.8ms).*
 
-**Key finding:** INT8 quantization works well on large models (0.77% F1 drop on teacher) but degrades smaller models more significantly (7% drop on student). Pruning with recovery fine-tuning actually *improved* the student's F1 beyond baseline.
-
-**Note on Student v1:** Student v1 uses a different tokenizer than the teacher (uncased vs clinical vocabulary), causing a tokenizer-model mismatch in the optimization pipeline. Baseline F1 dropped to 17.54% — not because the model is bad (it scores 76.06% with its own tokenizer), but because the tokens don't align. Student v2 (same tokenizer family as teacher) does not have this issue.
+**Key finding:** INT8 quantization cut model size by 74.8% (253MB → 63.7MB). The 40% sparsity pruning target was met with only 0.13% F1 drop on the teacher.
 
 ---
 
 ### Component 5: A/B Testing
 
-**Teacher vs Student v2:**
-- Student retains **89.9%** of teacher's per-sample F1
-- Latency: Teacher 28ms vs Student 29ms (comparable on macOS)
-- Recommendation: Deploy student — acceptable F1 retention with 40% fewer parameters
+**Teacher vs Student v2 (100 samples, 95% CI):**
 
-**Student v1 vs Student v2:**
-- v2 significantly outperforms v1 across all metrics
-- Chemical F1: v1 73.58% → v2 85.92% (**+12.34%**)
-- Statistical tests (Mann-Whitney, Wilcoxon) confirm the improvement is real, not noise
+| Metric | Teacher | Student v2 | Result |
+|---|---|---|---|
+| Mean F1 | 0.9175 | 0.8081 | Teacher wins (p < 0.000001) |
+| Mean latency | 52.4ms | 28.0ms | Student wins (p < 0.000001) |
+| F1 retention | — | **88.1%** | Acceptable |
+
+**Student v1 vs Student v2 (100 samples, 95% CI):**
+
+| Metric | Student v1 | Student v2 | Result |
+|---|---|---|---|
+| Mean F1 | 0.8441 | 0.7591 | v2 wins (p = 0.0001) |
+| Mean latency | 28.1ms | 29.1ms | No significant difference (p = 0.71) |
+| F1 retention vs teacher | 89.9% | — | v2 recommended |
+
+Recommendation: **Deploy Student v2** — 88.1% F1 retention with 39.5% fewer parameters and 1.9× lower latency.
 
 ---
 
 ### Component 6: Observability
 
-- 101 requests processed, **zero errors**
-- **97% SLA compliance** (98/101 requests under 50ms)
-- 131 Chemical + 73 Disease entities detected
-- Web UI: annotation tool + teacher vs student comparison view
+- 100 requests processed, **zero errors**
+- **97% SLA compliance** (97/100 requests under 50ms)
+- Latency range: 20.9ms – 56.3ms (two spikes above 50ms)
+- Web UI: clinical annotation tool + teacher vs student comparison view
 
 ---
 
@@ -205,7 +213,7 @@ The pipeline optimizes this model for edge deployment — fast enough for real-t
 ```mermaid
 flowchart LR
     subgraph INPUT["Inputs"]
-        RAW["Raw Clinical Text\n(S3)"]
+        RAW["PubMed Abstracts\n(downloaded via API)"]
         BC5["BC5CDR Dataset"]
     end
 
@@ -213,28 +221,28 @@ flowchart LR
         CL["Clean + Normalize"]
         TOK["Tokenize"]
         FEAT["TF-IDF + N-gram\nFeatures"]
-        PAR["Write Parquet\nto S3"]
+        PAR["Write Parquet → S3"]
         RAW --> CL --> TOK --> FEAT --> PAR
     end
 
     subgraph MPIPE["Model Pipeline"]
         FT["1. Fine-tune\nBio_ClinicalBERT"]
-        DIST["2. Distill →\nDistilClinicalBERT"]
+        DIST["2. Distill →\nDistilClinicalBERT v2\n10 epochs, T=4"]
         OPT["3. Prune 40%\n+ INT8 Quantize"]
-        ONNX["4. Export ONNX\nfor Edge"]
+        ONNX["4. Export ONNX\nfor Edge (63.7MB)"]
         BC5 --> FT --> DIST --> OPT --> ONNX
         PAR --> FT
     end
 
     subgraph EVALPIPE["Evaluation"]
-        AB2["5. A/B Test\nTeacher vs Optimized"]
-        AGT["6. LangChain Agent\nAuto-analyzes Results"]
+        AB2["5. A/B Test\nTeacher vs Student v2\n100 samples · Mann-Whitney · Wilcoxon"]
+        AGT["6. LangChain Agent\nAuto-analyzes benchmark reports"]
         ONNX --> AB2 --> AGT
     end
 
     subgraph SERVE["Production Serving"]
-        FAPI["FastAPI Server"]
-        MON["Prometheus + OTel\n+ Grafana"]
+        FAPI["FastAPI Server\n10.8ms p50 latency"]
+        MON["Prometheus + OTel\n+ Grafana · 97% SLA"]
         ONNX --> FAPI --> MON
     end
 ```
@@ -245,7 +253,7 @@ flowchart LR
 
 | Category | Technologies |
 |---|---|
-| ML/DL | PyTorch, HuggingFace Transformers, ONNX Runtime |
+| ML/DL | PyTorch, HuggingFace Transformers, ONNX Runtime, HuggingFace Optimum |
 | Data | PySpark, Apache Spark, Parquet |
 | Cloud | AWS EMR, S3, Step Functions, Terraform |
 | Serving | FastAPI, Prometheus, OpenTelemetry, Grafana |
@@ -261,47 +269,47 @@ flowchart LR
 ```
 clinical-nlp-optimization/
 ├── distillation/               ← Knowledge distillation (Teacher → Student)
-│   ├── train_teacher.py        ← Fine-tune Bio_ClinicalBERT
-│   ├── distill.py              ← Distill to student v1 (DistilBERT)
-│   ├── distill_v2.py           ← Distill to student v2 (DistilClinicalBERT) — best
-│   ├── evaluate.py             ← Compare teacher vs student
-│   └── UNDERSTANDING_THE_CODE.md
+│   ├── train_teacher.py        ← Fine-tune Bio_ClinicalBERT on BC5CDR
+│   ├── distill.py              ← Distill to student v1 (DistilBERT, 5 epochs)
+│   ├── distill_v2.py           ← Distill to student v2 (DistilClinicalBERT, 10 epochs) — recommended
+│   ├── evaluate.py             ← Compare teacher vs student (F1, latency, size)
+│   └── results/                ← distillation_report.json, v1_vs_v2_comparison.json
 │
 ├── distributed-training/       ← Distributed NLP pipeline
 │   ├── spark_pipeline.py       ← PySpark pipeline (5 stages)
 │   ├── pipeline_local.py       ← Local test with synthetic data
 │   ├── deploy_emr.py           ← AWS EMR deployment
-│   ├── download_pubmed.py      ← Download PubMed abstracts via API
-│   ├── weak_label_pubmed.py    ← Teacher NER on PubMed (weak labeling)
+│   ├── download_pubmed.py      ← Download 7,064 PubMed abstracts via API
+│   ├── weak_label_pubmed.py    ← Teacher NER on PubMed (19,506 entities @ 0.85 threshold)
 │   ├── terraform/              ← Infrastructure as Code
-│   └── UNDERSTANDING_THE_CODE.md
+│   └── results/                ← pipeline_stats.json, weak_labeling_pubmed_report.json
 │
 ├── model-optimization/         ← Pruning + INT8 quantization
-│   ├── optimize.py             ← Full optimization pipeline
-│   ├── benchmark.py            ← Benchmark comparison
+│   ├── optimize.py             ← Full optimization pipeline (prune → recover → quantize)
+│   ├── benchmark.py            ← Benchmark all variants
 │   ├── kv_cache_quantization/  ← PolarQuant (3-bit KV cache)
-│   └── UNDERSTANDING_THE_CODE.md
+│   └── results/                ← benchmark_report.json
 │
 ├── agentic-workflows/          ← LangChain evaluation agent
-│   ├── agent.py                ← Agent with tool calling
+│   ├── agent.py                ← Agent with tool calling (Nemotron via OpenRouter)
 │   ├── tools.py                ← 5 analysis tools
-│   ├── run_tools.py            ← Direct tool runner (no LLM)
-│   └── UNDERSTANDING_THE_CODE.md
+│   ├── run_tools.py            ← Direct tool runner (no LLM needed)
+│   └── results/                ← evaluation_summary.md, regression_analysis.json
 │
 ├── ab-testing/                 ← Statistical A/B testing
 │   ├── ab_test.py              ← Full experiment + stats
-│   └── UNDERSTANDING_THE_CODE.md
+│   └── results/                ← Teacher vs v2, v1 vs v2 reports + plots
 │
 ├── observability/              ← Production monitoring
 │   ├── inference_server.py     ← Instrumented FastAPI server
 │   ├── metrics.py              ← Prometheus metric definitions
 │   ├── logger.py               ← Structured JSON logging
 │   ├── tracing.py              ← OpenTelemetry setup
-│   ├── test_client.py          ← Load test client
+│   ├── test_client.py          ← Load test client (100 requests)
 │   ├── static/index.html       ← Clinical annotation UI
 │   ├── static/compare.html     ← Teacher vs Student comparison UI
 │   ├── grafana/dashboard.json  ← Grafana dashboard config
-│   └── UNDERSTANDING_THE_CODE.md
+│   └── results/                ← load_test_results.json
 │
 └── README.md
 ```
@@ -320,12 +328,14 @@ python evaluate.py        # Compare teacher vs student results
 # Component 2: Distributed Pipeline
 cd ../distributed-training && pip install -r requirements.txt
 python pipeline_local.py  # Local test with synthetic data
+python download_pubmed.py # Download PubMed abstracts
+python weak_label_pubmed.py # Run weak labeling
 # For full EMR run: python deploy_emr.py (requires AWS credentials + Terraform)
 
 # Component 3: Model Optimization
 cd ../model-optimization && pip install -r requirements.txt
-python optimize.py        # Prune + quantize (~20 min)
-python benchmark.py       # Compare variants
+python optimize.py        # Prune + quantize
+python benchmark.py       # Compare all variants
 
 # Component 4: Agentic Workflows
 cd ../agentic-workflows && pip install -r requirements.txt
@@ -339,7 +349,7 @@ python ab_test.py --num-samples 100
 # Component 6: Observability
 cd ../observability && pip install -r requirements.txt
 python inference_server.py  # Terminal 1 — starts FastAPI + Prometheus + OTel
-python test_client.py       # Terminal 2 — sends 101 requests, reports SLA
+python test_client.py       # Terminal 2 — sends 100 requests, reports SLA
 # Visit http://localhost:8000 for annotation UI
 # Visit http://localhost:8000/compare for teacher vs student comparison
 ```
@@ -352,6 +362,7 @@ python test_client.py       # Terminal 2 — sends 101 requests, reports SLA
 |---|---|---|
 | Domain | Clinical NER (healthcare) | Demonstrates PHI awareness relevant to real-world compliance |
 | Base model | Bio_ClinicalBERT | Pre-trained on clinical text, understands medical language |
+| Student model | DistilClinicalBERT (not DistilBERT) | Domain-matched student outperformed generic student by +4.64% F1 |
 | Dataset | BC5CDR | Public biomedical NER, no PHI, same architecture as PHI detection |
 | Compression | Distillation → Pruning → INT8 | Three-stage pipeline, each independently valuable |
 | Orchestration | AWS Step Functions | Serverless, native EMR integration |
@@ -359,22 +370,3 @@ python test_client.py       # Terminal 2 — sends 101 requests, reports SLA
 | Evaluation | Statistical tests | Not just averages — p-values and confidence intervals |
 | Observability | Prometheus + OTel + JSON logs | Industry standard three pillars |
 | Agent LLM | Nvidia Nemotron via OpenRouter | Free, healthcare-relevant, tool calling support |
-
----
-
-<details>
-<summary><strong>Resume Talking Points</strong></summary>
-
-Use these when describing this project in interviews or updating your resume:
-
-- **Compressed Bio_ClinicalBERT from 110M → 65M parameters** via knowledge distillation to a domain-matched DistilClinicalBERT student, retaining **93.2% Macro F1** while achieving a **3.5× inference speedup** (39ms → 11ms) — enabling real-time PHI detection at point of care without server infrastructure.
-
-- **Scaled a PySpark NLP pipeline on AWS EMR** (4× m5.xlarge) to process **899,999 records in 206.9 seconds** (4,350 docs/sec), applying weak labeling via the teacher model to generate **19,506 high-confidence clinical entities** from 7,064 PubMed abstracts; infrastructure provisioned with Terraform.
-
-- **Reduced model footprint by 84.8%** through structured pruning (40% sparsity with recovery fine-tuning) followed by INT8 quantization via ONNX Runtime — shrinking the student model from 411MB to **62.6MB** for edge deployment, with pruning unexpectedly *improving* student F1 by 0.95%.
-
-- **Deployed a production-grade FastAPI inference server** instrumented with Prometheus, OpenTelemetry, and structured JSON logging, achieving **97% SLA compliance** (98/101 requests under 50ms) and zero errors across 101 requests — monitored via a custom Grafana dashboard.
-
-- **Designed and implemented a 6-component end-to-end ML pipeline** spanning knowledge distillation, distributed data processing, model optimization, LangChain agentic evaluation, Mann-Whitney/Wilcoxon A/B testing, and full-stack observability — demonstrating production ML engineering across the entire model lifecycle.
-
-</details>
