@@ -4,13 +4,28 @@ An end-to-end ML engineering project built around one use case: clinical Named E
 
 It covers knowledge distillation, distributed data processing, model optimization (pruning + quantization), A/B testing, a LangChain evaluation agent, and a production observability stack.
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=flat-square&logo=pytorch)
-![HuggingFace](https://img.shields.io/badge/HuggingFace-Transformers-FFD21E?style=flat-square&logo=huggingface&logoColor=black)
-![AWS](https://img.shields.io/badge/AWS-EMR%20%7C%20S3%20%7C%20Step%20Functions-FF9900?style=flat-square&logo=amazonaws)
-![ONNX](https://img.shields.io/badge/ONNX-Runtime-005CED?style=flat-square&logo=onnx)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi)
-![PySpark](https://img.shields.io/badge/PySpark-E25A1C?style=flat-square&logo=apachespark&logoColor=white)
+---
+
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](https://pytorch.org)
+[![HuggingFace](https://img.shields.io/badge/HuggingFace-Transformers-FFD21E?style=flat-square&logo=huggingface&logoColor=black)](https://huggingface.co)
+[![AWS](https://img.shields.io/badge/AWS-EMR%20%7C%20S3%20%7C%20Lambda-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com)
+[![ONNX](https://img.shields.io/badge/ONNX-Runtime-005CED?style=flat-square&logo=onnx&logoColor=white)](https://onnxruntime.ai)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![PySpark](https://img.shields.io/badge/PySpark-3.x-E25A1C?style=flat-square&logo=apachespark&logoColor=white)](https://spark.apache.org)
+
+[![LangChain](https://img.shields.io/badge/LangChain-Agentic%20Eval-1C3C3C?style=flat-square)](https://langchain.com)
+[![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?style=flat-square&logo=prometheus&logoColor=white)](https://prometheus.io)
+[![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-Tracing-000000?style=flat-square&logo=opentelemetry&logoColor=white)](https://opentelemetry.io)
+[![Grafana](https://img.shields.io/badge/Grafana-Dashboard-F46800?style=flat-square&logo=grafana&logoColor=white)](https://grafana.com)
+[![Terraform](https://img.shields.io/badge/Terraform-IaC-844FBA?style=flat-square&logo=terraform&logoColor=white)](https://terraform.io)
+[![Docker](https://img.shields.io/badge/Docker-LocalStack-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
+
+[![F1 Retention](https://img.shields.io/badge/F1%20Retention-93.2%25-22C55E?style=flat-square)](./distillation/results)
+[![Latency](https://img.shields.io/badge/Latency-39ms%20→%2010.8ms-0EA5E9?style=flat-square)](./observability/results)
+[![SLA](https://img.shields.io/badge/SLA%20Compliance-97%25-10B981?style=flat-square)](./observability/results)
+[![Last Commit](https://img.shields.io/github/last-commit/SantoshAdabala/clinical-nlp-optimization?style=flat-square&color=64748B)](https://github.com/SantoshAdabala/clinical-nlp-optimization/commits/main)
+[![Stars](https://img.shields.io/github/stars/SantoshAdabala/clinical-nlp-optimization?style=flat-square&color=FBBF24)](https://github.com/SantoshAdabala/clinical-nlp-optimization/stargazers)
 
 ---
 
